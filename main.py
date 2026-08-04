@@ -56,11 +56,11 @@ def get_accommodations():
 
     try:
 
-        response = requests.get(
-            API_URL,
-            params=PARAMS,
-            timeout=20
-        )
+       response = requests.post(
+    url,
+    json=params,
+    timeout=20
+)
 
         response.raise_for_status()
 
