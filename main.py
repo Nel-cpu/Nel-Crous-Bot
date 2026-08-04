@@ -19,12 +19,25 @@ PARAMS = {
     "minArea": 9,
     "page": 0,
     "pageSize": 100,
-    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088",
-    "locationName": "Montpellier"
+    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088"
 }
 
 
 FILE_MEMORY = "seen.json"
+
+
+# Communes acceptées autour de Montpellier
+VILLES_AUTORISEES = [
+    "montpellier",
+    "lattes",
+    "castelnau-le-lez",
+    "jacou",
+    "le crès",
+    "saint-jean-de-védas",
+    "saint clément de rivière",
+    "juvignac",
+    "grabels"
+]
 
 
 
@@ -36,8 +49,14 @@ def load_seen():
 
     if os.path.exists(FILE_MEMORY):
 
-        with open(FILE_MEMORY, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+
+            with open(FILE_MEMORY, "r", encoding="utf-8") as f:
+                return json.load(f)
+
+        except:
+
+            return []
 
     return []
 
@@ -46,7 +65,7 @@ def load_seen():
 def save_seen(data):
 
     with open(FILE_MEMORY, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
 
 
@@ -83,22 +102,63 @@ def get_accommodations():
         )
 
 
+        logements_montpellier = []
+
+
+        print("\n🔎 Filtrage Montpellier :")
+
+
         for logement in logements:
+
 
             residence = logement.get(
                 "residence",
                 {}
             )
 
-            print(
-                "➡️",
-                residence.get("label"),
-                "|",
-                residence.get("address")
+
+            nom = residence.get(
+                "label",
+                "Inconnue"
             )
 
 
-        return logements
+            adresse = residence.get(
+                "address",
+                ""
+            )
+
+
+            adresse_lower = adresse.lower()
+
+
+            print(
+                "➡️",
+                nom,
+                "|",
+                adresse
+            )
+
+
+            trouve = False
+
+
+            for ville in VILLES_AUTORISEES:
+
+                if ville in adresse_lower:
+
+                    trouve = True
+                    break
+
+
+
+            if trouve:
+
+                logements_montpellier.append(logement)
+
+
+
+        return logements_montpellier
 
 
 
@@ -125,7 +185,7 @@ logements = get_accommodations()
 
 
 print(
-    f"{len(logements)} logement(s) Montpellier trouvé(s)"
+    f"\n🏠 {len(logements)} logement(s) Montpellier trouvé(s)"
 )
 
 
@@ -136,7 +196,10 @@ nouveaux = []
 
 for logement in logements:
 
-    logement_id = logement.get("id")
+
+    logement_id = logement.get(
+        "id"
+    )
 
 
     if logement_id not in seen:
@@ -182,21 +245,6 @@ if nouveaux:
 
 
 
-        surface = logement.get(
-            "area",
-            {}
-        )
-
-
-        surface_text = (
-            f"{surface.get('min')} m²"
-            if surface.get("min") == surface.get("max")
-            else
-            f"{surface.get('min')} - {surface.get('max')} m²"
-        )
-
-
-
         occupation = logement.get(
             "occupationModes",
             []
@@ -211,6 +259,21 @@ if nouveaux:
         else:
 
             prix = "NC"
+
+
+
+        surface = logement.get(
+            "area",
+            {}
+        )
+
+
+        surface_text = (
+            f"{surface.get('min')} m²"
+            if surface.get("min") == surface.get("max")
+            else
+            f"{surface.get('min')} - {surface.get('max')} m²"
+        )
 
 
 
@@ -248,7 +311,6 @@ if nouveaux:
 
 
 else:
-
 
     print(
         "Aucun nouveau logement."
