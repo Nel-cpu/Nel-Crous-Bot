@@ -1,0 +1,31 @@
+name: CROUS Alert Perso
+
+on:
+  schedule:
+    - cron: "*/1 * * * *"
+
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r requirements.txt
+
+      - name: Lancer Nel-Crous-Bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python main.py
