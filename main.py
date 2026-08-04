@@ -55,29 +55,32 @@ def save_seen(data):
 
 
 # ==============================
-# DISTANCE
+# DISTANCE GPS
 # ==============================
 
 def distance_km(lat1, lon1, lat2, lon2):
 
     R = 6371
 
-    dlat = radians(lat2-lat1)
-    dlon = radians(lon2-lon1)
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
 
     a = (
-        sin(dlat/2)**2
+        sin(dlat / 2) ** 2
         +
         cos(radians(lat1))
         *
         cos(radians(lat2))
         *
-        sin(dlon/2)**2
+        sin(dlon / 2) ** 2
     )
 
-    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    c = 2 * atan2(
+        sqrt(a),
+        sqrt(1 - a)
+    )
 
-    return round(R*c, 1)
+    return round(R * c, 1)
 
 
 
@@ -101,17 +104,26 @@ def get_accommodations():
 
         response.raise_for_status()
 
+
         data = response.json()
 
 
         logements = data["results"]["items"]
 
 
-        # On garde uniquement Montpellier
+        print(
+            f"API CROUS : {len(logements)} logements reçus"
+        )
+
+
         logements_montpellier = []
 
 
+        print("🔎 Vérification des distances :")
+
+
         for logement in logements:
+
 
             residence = logement.get(
                 "residence",
@@ -129,20 +141,41 @@ def get_accommodations():
             lon = location.get("lon")
 
 
-            if lat and lon:
+            nom = residence.get(
+                "label",
+                "Résidence inconnue"
+            )
 
-                distance = distance_km(
-                    FACULTE_LAT,
-                    FACULTE_LON,
-                    lat,
-                    lon
+
+            if lat is None or lon is None:
+
+                print(
+                    nom,
+                    "=> coordonnées absentes"
                 )
 
+                continue
 
-                # Montpellier et alentours
-                if distance < 20:
 
-                    logements_montpellier.append(logement)
+
+            distance = distance_km(
+                FACULTE_LAT,
+                FACULTE_LON,
+                lat,
+                lon
+            )
+
+
+            print(
+                f"{nom} => {distance} km"
+            )
+
+
+
+            # Rayon large pour Montpellier
+            if distance <= 40:
+
+                logements_montpellier.append(logement)
 
 
 
@@ -152,7 +185,10 @@ def get_accommodations():
 
     except Exception as e:
 
-        print("Erreur CROUS :", e)
+        print(
+            "Erreur CROUS :",
+            e
+        )
 
         return []
 
@@ -179,6 +215,7 @@ nouveaux = []
 
 for logement in logements:
 
+
     logement_id = logement.get("id")
 
 
@@ -194,14 +231,12 @@ for logement in logements:
 # TELEGRAM
 # ==============================
 
-
 if nouveaux:
 
 
     message = (
         "🏠 Nouveau(x) logement(s) CROUS Montpellier !\n\n"
     )
-
 
 
     for logement in nouveaux:
@@ -237,7 +272,6 @@ if nouveaux:
             else
             f"{surface.get('min')} - {surface.get('max')} m²"
         )
-
 
 
         occupation = logement.get(
@@ -281,11 +315,13 @@ if nouveaux:
 📍 {adresse}
 
 💰 Loyer : {prix} €
+
 📐 Surface : {surface_text}
 
 🎓 Faculté pharmacie : {distance} km
 
-🔗 https://trouverunlogement.lescrous.fr/search/47
+🔗 Voir sur CROUS :
+https://trouverunlogement.lescrous.fr/search/47
 
 🆔 Référence logement : {logement_id}
 
@@ -296,17 +332,24 @@ if nouveaux:
 
     send_message(message)
 
-    print("🚨 Alerte Telegram envoyée !")
+
+    print(
+        "🚨 Alerte Telegram envoyée !"
+    )
 
 
 
 else:
 
-    print("Aucun nouveau logement.")
+    print(
+        "Aucun nouveau logement."
+    )
 
 
 
 save_seen(seen)
 
 
-print("✅ Surveillance terminée.")
+print(
+    "✅ Surveillance terminée."
+)
