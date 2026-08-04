@@ -14,10 +14,9 @@ print("🤖 CROUS Alert Perso démarre !")
 API_URL = "https://trouverunlogement.lescrous.fr/api/fr/search/47"
 
 
-PARAMS = {
+BASE_PARAMS = {
     "maxPrice": 400,
     "minArea": 9,
-    "page": 0,
     "pageSize": 100,
     "bounds": "3.8070597_43.6533542_3.9413208_43.5667088"
 }
@@ -26,15 +25,15 @@ PARAMS = {
 FILE_MEMORY = "seen.json"
 
 
-# Communes acceptées autour de Montpellier
 VILLES_AUTORISEES = [
     "montpellier",
     "lattes",
     "castelnau-le-lez",
     "jacou",
     "le crès",
+    "le cres",
     "saint-jean-de-védas",
-    "saint clément de rivière",
+    "saint jean de vedas",
     "juvignac",
     "grabels"
 ]
@@ -65,7 +64,13 @@ def load_seen():
 def save_seen(data):
 
     with open(FILE_MEMORY, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+
+        json.dump(
+            data,
+            f,
+            indent=2,
+            ensure_ascii=False
+        )
 
 
 
@@ -75,40 +80,80 @@ def save_seen(data):
 
 def get_accommodations():
 
+    logements_total = []
+
+
     try:
 
-        response = requests.post(
-            API_URL,
-            json=PARAMS,
-            timeout=20,
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Accept": "application/json"
-            }
-        )
+        # Scan de plusieurs pages
+        for page in range(10):
+
+            params = BASE_PARAMS.copy()
+
+            params["page"] = page
 
 
-        response.raise_for_status()
+            response = requests.post(
+
+                API_URL,
+
+                json=params,
+
+                timeout=20,
+
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "application/json"
+                }
+            )
 
 
-        data = response.json()
+            response.raise_for_status()
 
 
-        logements = data["results"]["items"]
+            data = response.json()
+
+
+            items = data.get(
+                "results",
+                {}
+            ).get(
+                "items",
+                []
+            )
+
+
+            print(
+                f"📄 Page {page} : {len(items)} logements"
+            )
+
+
+            if not items:
+
+                break
+
+
+            logements_total.extend(items)
+
 
 
         print(
-            f"API CROUS : {len(logements)} logements reçus"
+            f"\n🏢 Total API CROUS : {len(logements_total)} logements"
         )
+
 
 
         logements_montpellier = []
 
 
-        print("\n🔎 Filtrage Montpellier :")
+
+        print(
+            "\n🔎 Recherche Montpellier :"
+        )
 
 
-        for logement in logements:
+
+        for logement in logements_total:
 
 
             residence = logement.get(
@@ -119,7 +164,7 @@ def get_accommodations():
 
             nom = residence.get(
                 "label",
-                "Inconnue"
+                "Résidence inconnue"
             )
 
 
@@ -127,9 +172,6 @@ def get_accommodations():
                 "address",
                 ""
             )
-
-
-            adresse_lower = adresse.lower()
 
 
             print(
@@ -140,21 +182,18 @@ def get_accommodations():
             )
 
 
-            trouve = False
+
+            adresse_lower = adresse.lower()
+
 
 
             for ville in VILLES_AUTORISEES:
 
                 if ville in adresse_lower:
 
-                    trouve = True
+                    logements_montpellier.append(logement)
+
                     break
-
-
-
-            if trouve:
-
-                logements_montpellier.append(logement)
 
 
 
@@ -165,7 +204,7 @@ def get_accommodations():
     except Exception as e:
 
         print(
-            "Erreur CROUS :",
+            "❌ Erreur CROUS :",
             e
         )
 
@@ -254,7 +293,18 @@ if nouveaux:
 
         if occupation:
 
-            prix = occupation[0]["rent"]["min"] / 100
+            prix = occupation[0].get(
+                "rent",
+                {}
+            ).get(
+                "min",
+                "NC"
+            )
+
+            if prix != "NC":
+
+                prix = prix / 100
+
 
         else:
 
