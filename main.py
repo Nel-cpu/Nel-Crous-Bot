@@ -18,10 +18,7 @@ PARAMS = {
     "minArea": 9,
     "page": 0,
     "pageSize": 24,
-
-    # Zone Montpellier élargie
-    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088",
-
+    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088"
 }
 
 
@@ -56,11 +53,14 @@ def get_accommodations():
 
     try:
 
-       response = requests.post(
-    url,
-    json=params,
-    timeout=20
-)
+        response = requests.post(
+            API_URL,
+            json=PARAMS,
+            timeout=20,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            }
+        )
 
         response.raise_for_status()
 
@@ -96,7 +96,6 @@ nouveaux = []
 
 for logement in logements:
 
-
     logement_id = logement.get("id")
 
 
@@ -114,12 +113,12 @@ for logement in logements:
 
 if nouveaux:
 
-
     message = "🏠 Nouveau(x) logement(s) CROUS Montpellier !\n\n"
 
 
     for logement in nouveaux:
 
+        logement_id = logement.get("id")
 
         nom = logement.get(
             "name",
@@ -140,7 +139,7 @@ if nouveaux:
 
     send_message(message)
 
-    print("🚨 Alerte envoyée !")
+    print("🚨 Alerte Telegram envoyée !")
 
 
 else:
