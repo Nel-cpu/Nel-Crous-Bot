@@ -26,7 +26,7 @@ PARAMS = {
 FILE_MEMORY = "seen.json"
 
 
-# Coordonnées Faculté de Pharmacie Montpellier
+# Faculté de Pharmacie Montpellier
 FACULTE_LAT = 43.6319
 FACULTE_LON = 3.8617
 
@@ -55,7 +55,7 @@ def save_seen(data):
 
 
 # ==============================
-# DISTANCE GPS
+# DISTANCE
 # ==============================
 
 def distance_km(lat1, lon1, lat2, lon2):
@@ -107,39 +107,42 @@ def get_accommodations():
         logements = data["results"]["items"]
 
 
-        # Filtre Montpellier
+        # On garde uniquement Montpellier
         logements_montpellier = []
 
 
         for logement in logements:
 
-
-            residence = logement.get("residence", {})
-
-            adresse = residence.get(
-                "address",
-                ""
-            ).lower()
-
-
-            entity = residence.get(
-                "entity",
+            residence = logement.get(
+                "residence",
                 {}
-            ).get(
-                "name",
-                ""
-            ).lower()
+            )
 
 
+            location = residence.get(
+                "location",
+                {}
+            )
 
-            if (
-                "montpellier" in adresse
-                or "hérault" in adresse
-                or "herault" in adresse
-                or "montpellier" in entity
-            ):
 
-                logements_montpellier.append(logement)
+            lat = location.get("lat")
+            lon = location.get("lon")
+
+
+            if lat and lon:
+
+                distance = distance_km(
+                    FACULTE_LAT,
+                    FACULTE_LON,
+                    lat,
+                    lon
+                )
+
+
+                # Montpellier et alentours
+                if distance < 20:
+
+                    logements_montpellier.append(logement)
 
 
 
@@ -159,7 +162,6 @@ def get_accommodations():
 # TRAITEMENT
 # ==============================
 
-
 seen = load_seen()
 
 
@@ -175,9 +177,7 @@ print(
 nouveaux = []
 
 
-
 for logement in logements:
-
 
     logement_id = logement.get("id")
 
@@ -240,17 +240,15 @@ if nouveaux:
 
 
 
-        loyer = logement.get(
+        occupation = logement.get(
             "occupationModes",
             []
         )
 
 
-        if loyer:
+        if occupation:
 
-            prix = loyer[0]["rent"]["min"]
-
-            prix = round(prix / 100, 2)
+            prix = occupation[0]["rent"]["min"] / 100
 
         else:
 
@@ -264,19 +262,12 @@ if nouveaux:
         )
 
 
-        if location:
-
-
-            distance = distance_km(
-                FACULTE_LAT,
-                FACULTE_LON,
-                location.get("lat"),
-                location.get("lon")
-            )
-
-        else:
-
-            distance = "NC"
+        distance = distance_km(
+            FACULTE_LAT,
+            FACULTE_LON,
+            location.get("lat"),
+            location.get("lon")
+        )
 
 
 
@@ -292,9 +283,11 @@ if nouveaux:
 💰 Loyer : {prix} €
 📐 Surface : {surface_text}
 
-🎓 Distance faculté : {distance} km
+🎓 Faculté pharmacie : {distance} km
 
-🔗 https://trouverunlogement.lescrous.fr/tools/47/accommodations/{logement_id}
+🔗 https://trouverunlogement.lescrous.fr/search/47
+
+🆔 Référence logement : {logement_id}
 
 --------------------
 """
@@ -303,16 +296,13 @@ if nouveaux:
 
     send_message(message)
 
-
     print("🚨 Alerte Telegram envoyée !")
 
 
 
 else:
 
-
     print("Aucun nouveau logement.")
-
 
 
 
