@@ -1,7 +1,6 @@
 import requests
 import os
 import json
-from math import radians, sin, cos, sqrt, atan2
 from telegram import send_message
 
 
@@ -14,21 +13,18 @@ print("🤖 CROUS Alert Perso démarre !")
 
 API_URL = "https://trouverunlogement.lescrous.fr/api/fr/search/47"
 
+
 PARAMS = {
     "maxPrice": 400,
     "minArea": 9,
     "page": 0,
     "pageSize": 100,
-    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088"
+    "bounds": "3.8070597_43.6533542_3.9413208_43.5667088",
+    "locationName": "Montpellier"
 }
 
 
 FILE_MEMORY = "seen.json"
-
-
-# Faculté de Pharmacie Montpellier
-FACULTE_LAT = 43.6319
-FACULTE_LON = 3.8617
 
 
 
@@ -55,36 +51,6 @@ def save_seen(data):
 
 
 # ==============================
-# DISTANCE GPS
-# ==============================
-
-def distance_km(lat1, lon1, lat2, lon2):
-
-    R = 6371
-
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-
-    a = (
-        sin(dlat / 2) ** 2
-        +
-        cos(radians(lat1))
-        *
-        cos(radians(lat2))
-        *
-        sin(dlon / 2) ** 2
-    )
-
-    c = 2 * atan2(
-        sqrt(a),
-        sqrt(1 - a)
-    )
-
-    return round(R * c, 1)
-
-
-
-# ==============================
 # RECHERCHE CROUS
 # ==============================
 
@@ -97,7 +63,8 @@ def get_accommodations():
             json=PARAMS,
             timeout=20,
             headers={
-                "User-Agent": "Mozilla/5.0"
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json"
             }
         )
 
@@ -116,70 +83,22 @@ def get_accommodations():
         )
 
 
-        logements_montpellier = []
-
-
-        print("🔎 Vérification des distances :")
-
-
         for logement in logements:
-
 
             residence = logement.get(
                 "residence",
                 {}
             )
 
-
-            location = residence.get(
-                "location",
-                {}
-            )
-
-
-            lat = location.get("lat")
-            lon = location.get("lon")
-
-
-            nom = residence.get(
-                "label",
-                "Résidence inconnue"
-            )
-
-
-            if lat is None or lon is None:
-
-                print(
-                    nom,
-                    "=> coordonnées absentes"
-                )
-
-                continue
-
-
-
-            distance = distance_km(
-                FACULTE_LAT,
-                FACULTE_LON,
-                lat,
-                lon
-            )
-
-
             print(
-                f"{nom} => {distance} km"
+                "➡️",
+                residence.get("label"),
+                "|",
+                residence.get("address")
             )
 
 
-
-            # Rayon large pour Montpellier
-            if distance <= 40:
-
-                logements_montpellier.append(logement)
-
-
-
-        return logements_montpellier
+        return logements
 
 
 
@@ -204,6 +123,7 @@ seen = load_seen()
 logements = get_accommodations()
 
 
+
 print(
     f"{len(logements)} logement(s) Montpellier trouvé(s)"
 )
@@ -213,8 +133,8 @@ print(
 nouveaux = []
 
 
-for logement in logements:
 
+for logement in logements:
 
     logement_id = logement.get("id")
 
@@ -239,6 +159,7 @@ if nouveaux:
     )
 
 
+
     for logement in nouveaux:
 
 
@@ -260,6 +181,7 @@ if nouveaux:
         )
 
 
+
         surface = logement.get(
             "area",
             {}
@@ -274,10 +196,12 @@ if nouveaux:
         )
 
 
+
         occupation = logement.get(
             "occupationModes",
             []
         )
+
 
 
         if occupation:
@@ -290,22 +214,9 @@ if nouveaux:
 
 
 
-        location = residence.get(
-            "location",
-            {}
+        logement_id = logement.get(
+            "id"
         )
-
-
-        distance = distance_km(
-            FACULTE_LAT,
-            FACULTE_LON,
-            location.get("lat"),
-            location.get("lon")
-        )
-
-
-
-        logement_id = logement.get("id")
 
 
 
@@ -318,12 +229,9 @@ if nouveaux:
 
 📐 Surface : {surface_text}
 
-🎓 Faculté pharmacie : {distance} km
+🔗 https://trouverunlogement.lescrous.fr/tools/47/search
 
-🔗 Voir sur CROUS :
-https://trouverunlogement.lescrous.fr/search/47
-
-🆔 Référence logement : {logement_id}
+🆔 ID logement : {logement_id}
 
 --------------------
 """
@@ -341,6 +249,7 @@ https://trouverunlogement.lescrous.fr/search/47
 
 else:
 
+
     print(
         "Aucun nouveau logement."
     )
@@ -348,6 +257,7 @@ else:
 
 
 save_seen(seen)
+
 
 
 print(
