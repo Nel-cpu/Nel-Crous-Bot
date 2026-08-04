@@ -1,123 +1,109 @@
 import requests
-import json
+import re
 
 
-print("🤖 Test API CROUS Montpellier")
+print("🤖 Recherche endpoint CROUS réel")
 
 
-API_URL = "https://trouverunlogement.lescrous.fr/api/fr/search/47"
-
-
-PARAMS_LIST = [
-
-    {
-        "maxPrice":400,
-        "minArea":9,
-        "page":0,
-        "pageSize":100,
-        "bounds":"3.8070597_43.6533542_3.9413208_43.5667088",
-        "locationName":"Montpellier"
-    },
-
-
-    {
-        "maxPrice":400,
-        "minArea":9,
-        "page":0,
-        "pageSize":100,
-        "city":"Montpellier"
-    },
-
-
-    {
-        "maxPrice":400,
-        "minArea":9,
-        "page":0,
-        "pageSize":100,
-        "location":"Montpellier"
-    },
-
-
-    {
-        "maxPrice":400,
-        "minArea":9,
-        "page":0,
-        "pageSize":100,
-        "search":"Montpellier"
-    }
-
-]
+URL = "https://trouverunlogement.lescrous.fr/tools/47/search?maxPrice=400&minArea=9&bounds=3.8070597_43.6533542_3.9413208_43.5667088&locationName=Montpellier"
 
 
 
-for index, params in enumerate(PARAMS_LIST):
+headers = {
+    "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
 
 
-    print("\n====================")
-    print("TEST", index+1)
-    print(params)
+
+try:
 
 
-    try:
+    response = requests.get(
+        URL,
+        headers=headers,
+        timeout=20
+    )
 
-        response = requests.post(
 
-            API_URL,
+    print(
+        "Code HTTP :",
+        response.status_code
+    )
 
-            json=params,
 
-            headers={
-                "User-Agent":"Mozilla/5.0",
-                "Accept":"application/json"
-            },
+    html = response.text
 
-            timeout=20
 
+    print(
+        "Taille HTML :",
+        len(html)
+    )
+
+
+
+    # Recherche des URLs API
+    patterns = [
+
+        r'https://[^"\']+/api/[^"\']+',
+
+        r'/api/[^"\']+',
+
+        r'api/[^"\']+'
+
+    ]
+
+
+
+    trouve = set()
+
+
+
+    for pattern in patterns:
+
+
+        resultats = re.findall(
+            pattern,
+            html
         )
 
 
-        data=response.json()
+        for r in resultats:
 
-
-        logements=data.get(
-            "results",
-            {}
-        ).get(
-            "items",
-            []
-        )
-
-
-        print(
-            "Nombre logements :",
-            len(logements)
-        )
+            trouve.add(r)
 
 
 
-        for logement in logements[:5]:
+    print("\n🔎 Endpoints trouvés :")
 
 
-            residence=logement.get(
-                "residence",
-                {}
-            )
+    if trouve:
 
+        for url in trouve:
 
             print(
                 "➡️",
-                residence.get("label"),
-                "|",
-                residence.get("address")
+                url
             )
 
-
-    except Exception as e:
+    else:
 
         print(
-            "Erreur :",
-            e
+            "Aucun endpoint trouvé dans HTML"
         )
 
 
-print("\n✅ Diagnostic terminé")
+
+except Exception as e:
+
+
+    print(
+        "Erreur :",
+        e
+    )
+
+
+
+print(
+    "\n✅ Analyse terminée"
+)
