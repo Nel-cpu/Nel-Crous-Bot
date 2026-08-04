@@ -1,3 +1,17 @@
+from telegram import send_message
+
+
 print("CROUS Hunter démarre !")
-print("Connexion Telegram bientôt...")
-print("Surveillance des logements CROUS Montpellier...")
+
+message = """
+🤖 CROUS Alert Perso
+
+✅ Connexion réussie !
+
+Nel-Crous-Bot est opérationnel.
+La surveillance des logements CROUS Montpellier va bientôt commencer.
+"""
+
+send_message(message)
+
+print("Message Telegram envoyé !")
